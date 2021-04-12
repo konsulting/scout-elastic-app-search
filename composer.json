@@ -1,0 +1,57 @@
+{
+    "name": "konsulting/scout-elastic-app-search",
+    "description": "Laravel Scount Adapter for Elastic Enterprise App Search",
+    "keywords": [
+        "konsulting",
+        "scout-elastic-app-search"
+    ],
+    "homepage": "https://github.com/konsulting/scout-elastic-app-search",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Keoghan Litchfield",
+            "email": "keoghan@klever.co.uk",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^7.4",
+        "elastic/app-search": "^7.12",
+        "laravel/scout": "^8.6"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^6.17",
+        "phpunit/phpunit": "^9.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Konsulting\\ScoutElasticAppSearch\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Konsulting\\ScoutElasticAppSearch\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage",
+        "post-autoload-dump": [
+            "@php ./vendor/bin/testbench package:discover --ansi"
+        ]
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Konsulting\\ScoutElasticAppSearch\\ScoutElasticAppSearchServiceProvider"
+            ],
+            "aliases": {
+                "ScoutElasticAppSearch": "Konsulting\\ScoutElasticAppSearch\\ScoutElasticAppSearchFacade"
+            }
+        }
+    }
+}
