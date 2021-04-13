@@ -2,7 +2,7 @@
 
 namespace Konsulting\ScoutElasticAppSearch;
 
-use Illuminate\Support\Facades\App;
+use Laravel\Scout\EngineManager;
 use Elastic\AppSearch\Client\Client;
 use Illuminate\Support\ServiceProvider;
 use Elastic\AppSearch\Client\ClientBuilder;
@@ -19,6 +19,10 @@ class ScoutElasticAppSearchServiceProvider extends ServiceProvider
                 __DIR__.'/../config/config.php' => config_path('scout-elastic-app-search.php'),
             ], 'config');
         }
+
+        resolve(EngineManager::class)->extend('elastic-app-search', function ($app) {
+            return $app->make(ScoutElasticAppSearchEngine::class);
+        });
     }
 
     /**
@@ -33,7 +37,7 @@ class ScoutElasticAppSearchServiceProvider extends ServiceProvider
         $this->app->singleton(Client::class, function ($app) {
             $config = $app['config']->get('scout-elastic-app-search');
 
-            return ClientBuilder::create($config['endpoint'], $config['api-key']);
+            return ClientBuilder::create($config['endpoint'], $config['api-key'])->build();
         });
     }
 }

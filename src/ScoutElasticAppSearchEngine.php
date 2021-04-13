@@ -6,6 +6,7 @@ use Laravel\Scout\Builder;
 use Laravel\Scout\Engines\Engine;
 use Elastic\AppSearch\Client\Client;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Elastic\OpenApi\Codegen\Exception\NotFoundException;
 
 class ScoutElasticAppSearchEngine extends Engine
 {
@@ -22,6 +23,14 @@ class ScoutElasticAppSearchEngine extends Engine
      * @var bool
      */
     protected $softDelete;
+
+    /**
+     * The name of the index to use on the operations
+     * Set through the use of initIndex on calls that need to operate on the index
+     *
+     * @var string
+     */
+    protected $indexName;
 
     /**
      * Create a new engine instance.
@@ -48,7 +57,7 @@ class ScoutElasticAppSearchEngine extends Engine
             return;
         }
 
-        $this->initIndex($indexName = $models->first()->searchableAs());
+        $this->ensureIndexExists($models->first()->searchableAs());
 
         if ($this->usesSoftDelete($models->first()) && $this->softDelete) {
             $models->each->pushSoftDeleteMetadata();
@@ -60,14 +69,14 @@ class ScoutElasticAppSearchEngine extends Engine
             }
 
             return array_merge(
-                ['objectID' => $model->getScoutKey()],
+                ['scout_object_id' => $model->getScoutKey()],
                 $searchableData,
                 $model->scoutMetadata()
             );
         })->filter()->values()->all();
 
         if (! empty($objects)) {
-            $this->elastic->indexDocuments($indexName, $objects);
+            $this->elastic->indexDocuments($this->indexName, $objects);
         }
     }
 
@@ -79,10 +88,10 @@ class ScoutElasticAppSearchEngine extends Engine
      */
     public function delete($models)
     {
-        $this->initIndex($indexName = $models->first()->searchableAs());
+        $this->ensureIndexExists($models->first()->searchableAs());
 
         $this->elastic->deleteDocuments(
-            $indexName,
+            $this->indexName,
             $models->map(function ($model) {
                 return $model->getScoutKey();
             })->values()->all()
@@ -98,7 +107,7 @@ class ScoutElasticAppSearchEngine extends Engine
     public function search(Builder $builder)
     {
         return $this->performSearch($builder, array_filter([
-            'numericFilters' => $this->filters($builder),
+            'filters' => $this->filters($builder),
             'size' => $builder->limit,
         ]));
     }
@@ -114,7 +123,7 @@ class ScoutElasticAppSearchEngine extends Engine
     public function paginate(Builder $builder, $perPage, $page)
     {
         return $this->performSearch($builder, [
-            'numericFilters' => $this->filters($builder),
+            'filters' => $this->filters($builder),
             'size' => $perPage,
             'current' => $page - 1,
         ]);
@@ -129,18 +138,19 @@ class ScoutElasticAppSearchEngine extends Engine
      */
     protected function performSearch(Builder $builder, array $options = [])
     {
-        $this->initIndex($indexName = $builder->index ?: $builder->model->searchableAs());
+        $this->ensureIndexExists($builder->index ?: $builder->model->searchableAs());
 
         if ($builder->callback) {
             return call_user_func(
                 $builder->callback,
                 $this->elastic,
                 $builder->query,
-                $options
+                $options,
+                $this->indexName
             );
         }
 
-        return $this->elastic->search($indexName, $builder->query, $options);
+        return $this->elastic->search($this->indexName, $builder->query, $options);
     }
 
     /**
@@ -151,9 +161,9 @@ class ScoutElasticAppSearchEngine extends Engine
      */
     protected function filters(Builder $builder)
     {
-        return collect($builder->wheres)->map(function ($value, $key) {
-            return $key.'='.$value;
-        })->values()->all();
+        return collect($builder->wheres)->mapWithKeys(function ($value, $key) {
+            return [$key => [$value]];
+        })->all();
     }
 
     /**
@@ -164,7 +174,7 @@ class ScoutElasticAppSearchEngine extends Engine
      */
     public function mapIds($results)
     {
-        return collect($results['results'])->pluck('objectID')->values();
+        return collect($results['results'])->pluck('scout_object_id')->values();
     }
 
     /**
@@ -181,7 +191,7 @@ class ScoutElasticAppSearchEngine extends Engine
             return $model->newCollection();
         }
 
-        $objectIds = collect($results['results'])->pluck('objectID')->values()->all();
+        $objectIds = collect($results['results'])->pluck('scout_object_id')->values()->all();
         $objectIdPositions = array_flip($objectIds);
 
         return $model->getScoutModelsByIds(
@@ -212,11 +222,11 @@ class ScoutElasticAppSearchEngine extends Engine
      */
     public function flush($model)
     {
-        $this->initIndex($indexName = $model->first()->searchableAs());
+        $this->ensureIndexExists($model->first()->searchableAs());
 
         // A bit brutal :(
-        $this->elastic->deleteEngine($indexName);
-        $this->initIndex($indexName);
+        $this->elastic->deleteEngine($this->indexName);
+        $this->ensureIndexExists($this->indexName);
     }
 
     /**
@@ -242,14 +252,20 @@ class ScoutElasticAppSearchEngine extends Engine
         return $this->elastic->$method(...$parameters);
     }
 
-    protected function initIndex($name): void
+    /**
+     * Make sure the index exists.
+     *
+     * @param $name
+     */
+    protected function ensureIndexExists($name): void
     {
-        $engineSettings = $this->elastic->getEngine($name);
+        $this->indexName = str_replace('_', '-', $name);
 
-        if(isset($engineSettings['name'])) {
+        try {
+            $this->elastic->getEngine($this->indexName);
             return;
+        } catch (NotFoundException $e) {
+            $this->elastic->createEngine($this->indexName);
         }
-
-        $this->elastic->createEngine($name);
     }
 }

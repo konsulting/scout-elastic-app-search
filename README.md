@@ -1,11 +1,6 @@
-# Very short description of the package
+# Elastic App Search Driver for Laravel Scout
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/konsulting/scout-elastic-app-search.svg?style=flat-square)](https://packagist.org/packages/konsulting/scout-elastic-app-search)
-[![Build Status](https://img.shields.io/travis/konsulting/scout-elastic-app-search/master.svg?style=flat-square)](https://travis-ci.org/konsulting/scout-elastic-app-search)
-[![Quality Score](https://img.shields.io/scrutinizer/g/konsulting/scout-elastic-app-search.svg?style=flat-square)](https://scrutinizer-ci.com/g/konsulting/scout-elastic-app-search)
-[![Total Downloads](https://img.shields.io/packagist/dt/konsulting/scout-elastic-app-search.svg?style=flat-square)](https://packagist.org/packages/konsulting/scout-elastic-app-search)
-
-This is where your description should go. Try and limit it to a paragraph or two, and maybe throw in a mention of what PSRs you support to avoid any confusion with users and contributors.
+Integrate [Elastic App Search](https://www.elastic.co/enterprise-search) with [Laravel Scout](https://laravel.com/docs/8.x/scout).
 
 ## Installation
 
@@ -17,8 +12,25 @@ composer require konsulting/scout-elastic-app-search
 
 ## Usage
 
+In order to use the package, you must set Laravel Scout to use the driver
+``` dotenv
+SCOUT_DRIVER=elastic-app-search
+```
+
+Then set up the connection details for Elastic App Search
+
+``` dotenv
+SCOUT_ELASTIC_APP_SEARCH_ENDPOINT=
+SCOUT_ELASTIC_APP_SEARCH_API_KEY=
+```
+
+You will also need to adjust `config/scout.php` so that the chunk sizes are 100 records:
+
 ``` php
-// Usage description here
+'chunk' => [
+    'searchable' => 100,
+    'unsearchable' => 100,
+],
 ```
 
 ### Testing
