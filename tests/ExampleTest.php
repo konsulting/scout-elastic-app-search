@@ -7,12 +7,12 @@ use Konsulting\ScoutElasticAppSearch\ScoutElasticAppSearchServiceProvider;
 
 class ExampleTest extends TestCase
 {
+//
+//    protected function getPackageProviders($app)
+//    {
+//        return [ScoutElasticAppSearchServiceProvider::class];
+//    }
 
-    protected function getPackageProviders($app)
-    {
-        return [ScoutElasticAppSearchServiceProvider::class];
-    }
-    
     /** @test */
     public function true_is_true()
     {

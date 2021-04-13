@@ -114,7 +114,7 @@ class ElasticAppProxy
             throw new \BadMethodCallException($method.' method not found on '.get_class($this->elastic));
         }
 
-        if ($method !== 'listEngines' && $this->engine) {
+        if ($method !== 'listEngines' && !$this->engine) {
             throw new EngineNotInitialisedException('Unable to proxy call to Elastic App Client, no Engine initialised');
         }
 
