@@ -1,21 +1,20 @@
-<?php
+﻿<?php
 
 namespace Konsulting\ScoutElasticAppSearch;
 
 use Laravel\Scout\Builder;
 use Laravel\Scout\Engines\Engine;
-use Elastic\AppSearch\Client\Client;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Elastic\OpenApi\Codegen\Exception\NotFoundException;
 
 class ScoutElasticAppSearchEngine extends Engine
 {
     /**
-     * The Algolia client.
+     * The Elastic proxy.
      *
-     * @var Client
+     * @var ElasticAppProxy
      */
-    protected $elastic;
+    protected $proxy;
 
     /**
      * Determines if soft deletes for Scout are enabled or not.
@@ -25,23 +24,16 @@ class ScoutElasticAppSearchEngine extends Engine
     protected $softDelete;
 
     /**
-     * The name of the index to use on the operations
-     * Set through the use of initIndex on calls that need to operate on the index
-     *
-     * @var string
-     */
-    protected $indexName;
-
-    /**
      * Create a new engine instance.
      *
-     * @param  Client  $elastic
+     * @param  ElasticAppProxy  $proxy
      * @param  bool  $softDelete
+     *
      * @return void
      */
-    public function __construct(Client $elastic, $softDelete = false)
+    public function __construct(ElasticAppProxy $proxy, $softDelete = false)
     {
-        $this->elastic = $elastic;
+        $this->proxy = $proxy;
         $this->softDelete = $softDelete;
     }
 
@@ -57,7 +49,7 @@ class ScoutElasticAppSearchEngine extends Engine
             return;
         }
 
-        $this->ensureIndexExists($models->first()->searchableAs());
+        $this->proxy->ensureEngine($models->first()->searchableAs());
 
         if ($this->usesSoftDelete($models->first()) && $this->softDelete) {
             $models->each->pushSoftDeleteMetadata();
@@ -76,7 +68,7 @@ class ScoutElasticAppSearchEngine extends Engine
         })->filter()->values()->all();
 
         if (! empty($objects)) {
-            $this->elastic->indexDocuments($this->indexName, $objects);
+            $this->proxy->indexDocuments($objects);
         }
     }
 
@@ -88,10 +80,9 @@ class ScoutElasticAppSearchEngine extends Engine
      */
     public function delete($models)
     {
-        $this->ensureIndexExists($models->first()->searchableAs());
+        $this->proxy->ensureEngine($models->first()->searchableAs());
 
-        $this->elastic->deleteDocuments(
-            $this->indexName,
+        $this->proxy->deleteDocuments(
             $models->map(function ($model) {
                 return $model->getScoutKey();
             })->values()->all()
@@ -138,19 +129,18 @@ class ScoutElasticAppSearchEngine extends Engine
      */
     protected function performSearch(Builder $builder, array $options = [])
     {
-        $this->ensureIndexExists($builder->index ?: $builder->model->searchableAs());
+        $this->proxy->ensureEngine($builder->index ?: $builder->model->searchableAs());
 
         if ($builder->callback) {
             return call_user_func(
                 $builder->callback,
-                $this->elastic,
+                $this->proxy,
                 $builder->query,
-                $options,
-                $this->indexName
+                $options
             );
         }
 
-        return $this->elastic->search($this->indexName, $builder->query, $options);
+        return $this->proxy->search($builder->query, $options);
     }
 
     /**
@@ -222,11 +212,7 @@ class ScoutElasticAppSearchEngine extends Engine
      */
     public function flush($model)
     {
-        $this->ensureIndexExists($model->first()->searchableAs());
-
-        // A bit brutal :(
-        $this->elastic->deleteEngine($this->indexName);
-        $this->ensureIndexExists($this->indexName);
+        $this->proxy->flushEngine($model->first()->searchableAs());
     }
 
     /**
@@ -241,7 +227,7 @@ class ScoutElasticAppSearchEngine extends Engine
     }
 
     /**
-     * Dynamically call the Algolia client instance.
+     * Dynamically call the Elastic proxy instance.
      *
      * @param  string  $method
      * @param  array  $parameters
@@ -249,23 +235,6 @@ class ScoutElasticAppSearchEngine extends Engine
      */
     public function __call($method, $parameters)
     {
-        return $this->elastic->$method(...$parameters);
-    }
-
-    /**
-     * Make sure the index exists.
-     *
-     * @param $name
-     */
-    protected function ensureIndexExists($name): void
-    {
-        $this->indexName = str_replace('_', '-', $name);
-
-        try {
-            $this->elastic->getEngine($this->indexName);
-            return;
-        } catch (NotFoundException $e) {
-            $this->elastic->createEngine($this->indexName);
-        }
+        return $this->proxy->$method(...$parameters);
     }
 }
