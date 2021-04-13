@@ -2,6 +2,8 @@
 
 Integrate [Elastic App Search](https://www.elastic.co/enterprise-search) with [Laravel Scout](https://laravel.com/docs/8.x/scout).
 
+This is an early but functional version. Tests to be added.
+
 ## Installation
 
 You can install the package via composer:
