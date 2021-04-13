@@ -33,6 +33,35 @@ You will also need to adjust `config/scout.php` so that the chunk sizes are 100 
 ],
 ```
 
+Once you have adde the Searchable Trait to your model. You will be able to search with:
+``` php 
+ $result = Model::search($searchTerm)->get();
+```
+
+If you wish to have more control over the search, you can extend it in the familiar way with Scout.
+
+``` php
+ $result = Model::search($searchTerm, function (ElasticAppProxy $elastic, $query, $options) {
+    // Adjust the options here
+    // E.g. set the search fields in options, and add weightings
+    $options['search_fields']['field_name']['weight'] = 1;
+   
+   // Use filters, and so on
+    $options['filters'] = [
+        'all' => [
+            'name' => 'Konsulting',
+            'keyword' => 'Scout',
+        ],
+    ];
+
+    // Manipulate the position in results
+    $options['page']['size'] = $this->limit;
+    $options['page']['current'] = $this->currentPage();
+
+    return $elastic->search($query, $options);
+})->get();
+```
+
 ### Testing
 
 ``` bash
