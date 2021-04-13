@@ -5,7 +5,6 @@ namespace Konsulting\ScoutElasticAppSearch;
 use Laravel\Scout\Builder;
 use Laravel\Scout\Engines\Engine;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Elastic\OpenApi\Codegen\Exception\NotFoundException;
 
 class ScoutElasticAppSearchEngine extends Engine
 {
