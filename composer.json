@@ -18,7 +18,7 @@
     "require": {
         "php": "^8.2",
         "elastic/enterprise-search": "^8.7.0",
-        "laravel/scout": "^8.6"
+        "laravel/scout": "^9.8"
     },
     "require-dev": {
         "orchestra/testbench": "^6.17",
