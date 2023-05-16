@@ -16,8 +16,8 @@
         }
     ],
     "require": {
-        "php": "^7.4",
-        "elastic/app-search": "^7.12",
+        "php": "^8.2",
+        "elastic/enterprise-search": "^8.7.0",
         "laravel/scout": "^8.6"
     },
     "require-dev": {
@@ -42,7 +42,10 @@
         ]
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": false
+        }
     },
     "extra": {
         "laravel": {
